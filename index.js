@@ -34,12 +34,21 @@ async function run() {
         })
 
         // seller email dia product dakha
-        app.get('/products', async (req, res) => {
+        app.get('/VendorsProducts', async (req, res) => {
             const email = req.query.email;
             const query = email ? { vendorEmail: email } : {};
-            const result = await productCollection.find(query).toArray();
+            const result = await productsCollections.find(query).toArray();
             res.send(result);
         });
+
+        // GET product by ID
+        app.get("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const result = await productsCollections.findOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
+
 
         // Seller Product add
         app.post('/add-products', async (req, res) => {
