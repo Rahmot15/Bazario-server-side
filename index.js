@@ -48,7 +48,18 @@ async function run() {
             res.send(result);
         });
 
+        // UPDATE product by ID
+        app.put("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const updatedData = req.body;
 
+            const result = await productsCollections.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
+            );
+
+            res.send(result);
+        });
 
         // Seller Product add
         app.post('/add-products', async (req, res) => {
