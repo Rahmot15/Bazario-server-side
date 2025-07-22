@@ -33,12 +33,23 @@ async function run() {
             res.send(result)
         })
 
+        // seller email dia product dakha
+        app.get('/products', async (req, res) => {
+            const email = req.query.email;
+            const query = email ? { vendorEmail: email } : {};
+            const result = await productCollection.find(query).toArray();
+            res.send(result);
+        });
+
         // Seller Product add
         app.post('/add-products', async (req, res) => {
             const product = req.body
             const result = productsCollections.insertOne(product)
             res.send(result)
         })
+
+
+
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
