@@ -58,6 +58,7 @@ async function run() {
 
         const db = client.db("Bazariodb")
         const productsCollections = db.collection("products")
+        const reviewsCollection = db.collection("reviews");
 
         app.get('/products', async (req, res) => {
             const result = await productsCollections.find().toArray()
@@ -89,6 +90,37 @@ async function run() {
             const result = await productsCollections.find(query).toArray();
             res.send(result);
         });
+
+        // Get reviews for a product
+        app.get("/reviews/:productId", async (req, res) => {
+            const productId = req.params.productId;
+            const result = await reviewsCollection
+                .find({ productId })
+                .sort({ date: -1 })
+                .toArray();
+            res.send(result);
+        });
+
+        // Post a review
+        app.post("/reviews", async (req, res) => {
+            const review = req.body;
+            if (!review.productId || !review.userEmail || !review.comment || !review.rating) {
+                return res.status(400).send({ error: "Missing fields" });
+            }
+
+            const existing = await reviewsCollection.findOne({
+                productId: review.productId,
+                userEmail: review.userEmail,
+            });
+            if (existing) {
+                return res.status(409).send({ error: "You already reviewed this product" });
+            }
+
+            review.date = new Date().toISOString().split("T")[0];
+            const result = await reviewsCollection.insertOne(review);
+            res.send(result);
+        });
+
 
         // GET product by ID
         app.get("/products/:id", async (req, res) => {
