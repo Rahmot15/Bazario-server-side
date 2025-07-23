@@ -58,7 +58,8 @@ async function run() {
 
         const db = client.db("Bazariodb")
         const productsCollections = db.collection("products")
-        const reviewsCollection = db.collection("reviews");
+        const reviewsCollection = db.collection("reviews")
+        const usersCollection = db.collection('users')
 
         app.get('/products', async (req, res) => {
             const result = await productsCollections.find().toArray()
@@ -100,6 +101,33 @@ async function run() {
                 .toArray();
             res.send(result);
         });
+
+
+        // save or update a users info in db
+        app.post('/user', async (req, res) => {
+            const userData = req.body
+            userData.role = 'customer'
+            userData.created_at = new Date().toISOString()
+            userData.last_loggedIn = new Date().toISOString()
+            const query = {
+                email: userData?.email,
+            }
+            const alreadyExists = await usersCollection.findOne(query)
+            console.log('User already exists: ', !!alreadyExists)
+            if (!!alreadyExists) {
+                console.log('Updating user data......')
+                const result = await usersCollection.updateOne(query, {
+                    $set: { last_loggedIn: new Date().toISOString() },
+                })
+                return res.send(result)
+            }
+
+            console.log('Creating user data......')
+            // return console.log(userData)
+            const result = await usersCollection.insertOne(userData)
+            res.send(result)
+        })
+
 
         // Post a review
         app.post("/reviews", async (req, res) => {
