@@ -1,6 +1,10 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors');
-require('dotenv').config()
+
+const admin = require("firebase-admin");
+const serviceAccount = require("./bazario-auth-firebase-adminsdk.json");
+
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
@@ -10,6 +14,34 @@ app.use(cors())
 app.use(express.json())
 
 
+
+
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+
+const verifyFirebaseToken = async (req, res, next) => {
+    const authHeader = req.headers?.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).send({ message: 'unauthorized access' })
+    }
+
+    const token = authHeader.split(' ')[1];
+    console.log(token);
+
+
+    try {
+        const decoded = await admin.auth().verifyIdToken(token)
+        req.decoded = decoded
+        next()
+    }
+    catch {
+        return res.status(401).send({ message: 'unauthorized access' })
+    }
+}
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -28,13 +60,30 @@ async function run() {
         const productsCollections = db.collection("products")
 
         app.get('/products', async (req, res) => {
-
             const result = await productsCollections.find().toArray()
             res.send(result)
         })
 
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id;
+
+            try {
+                const query = { _id: new ObjectId(id) };
+                const product = await productsCollections.findOne(query);
+
+                if (product) {
+                    res.send(product);
+                } else {
+                    res.status(404).send({ message: 'Product not found' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Invalid ID or Server Error' });
+            }
+        });
+
         // seller email dia product dakha
-        app.get('/VendorsProducts', async (req, res) => {
+        app.get('/VendorsProducts', verifyFirebaseToken, async (req, res) => {
+
             const email = req.query.email;
             const query = email ? { vendorEmail: email } : {};
             const result = await productsCollections.find(query).toArray();
