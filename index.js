@@ -60,6 +60,7 @@ async function run() {
         const productsCollections = db.collection("products")
         const reviewsCollection = db.collection("reviews")
         const usersCollection = db.collection('users')
+        const adsCollection = db.collection('ads')
 
         app.get('/products', async (req, res) => {
             const result = await productsCollections.find().toArray()
@@ -261,6 +262,17 @@ async function run() {
             const result = productsCollections.insertOne(product)
             res.send(result)
         })
+        // Seller add-advertisements
+        app.post('/add-advertisements', async (req, res) => {
+            const product = req.body;
+            try {
+                const result = await adsCollection.insertOne(product);
+                res.send(result);
+            } catch (error) {
+                console.error("Failed to insert advertisement:", error);
+                res.status(500).send({ message: "Failed to add advertisement" });
+            }
+        });
 
         // seller product delete
         app.delete('/products/:id', async (req, res) => {
