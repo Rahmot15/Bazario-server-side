@@ -30,7 +30,7 @@ const verifyFirebaseToken = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    console.log(token);
+
 
 
     try {
@@ -135,6 +135,20 @@ async function run() {
             if (!result) return res.status(404).send({ message: 'User Not Found.' })
             res.send({ role: result?.role })
         })
+
+        // get all users for admin
+        app.get('/all-users', verifyFirebaseToken, async (req, res) => {
+            const filter = {
+                email: {
+                    $ne: req?.decoded?.email,
+                },
+            }
+            const result = await usersCollection.find(filter).toArray()
+            res.send(result)
+        })
+
+
+
 
 
         // Post a review
