@@ -147,7 +147,22 @@ async function run() {
             res.send(result)
         })
 
+        // update a user's role
+        app.patch('/user/role/update/:email', verifyFirebaseToken, async (req, res) => {
+            const email = req.params.email
+            const { role } = req.body
+            console.log(role)
+            const filter = { email: email }
+            const updateDoc = {
+                $set: {
+                    role
 
+                },
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc)
+            console.log(result)
+            res.send(result)
+        })
 
 
 
