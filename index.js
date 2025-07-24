@@ -264,6 +264,7 @@ async function run() {
         })
 
 
+
         // Seller add-advertisements
         app.post('/add-advertisements', async (req, res) => {
             const product = req.body;
@@ -316,6 +317,22 @@ async function run() {
                 res.send(result);
             } catch (err) {
                 res.status(500).send({ message: "Failed to update" });
+            }
+        });
+
+        // Seller delete advertisements
+        app.delete('/advertisements/:id', async (req, res) => {
+            const id = req.params.id;
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send({ error: 'Invalid product ID' });
+            }
+
+            const result = await adsCollection.deleteOne({ _id: new ObjectId(id) });
+
+            if (result.deletedCount === 1) {
+                res.send({ message: 'Product deleted successfully' });
+            } else {
+                res.status(404).send({ error: 'Product not found' });
             }
         });
 
