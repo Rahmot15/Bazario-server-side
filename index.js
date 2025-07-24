@@ -262,6 +262,8 @@ async function run() {
             const result = productsCollections.insertOne(product)
             res.send(result)
         })
+
+
         // Seller add-advertisements
         app.post('/add-advertisements', async (req, res) => {
             const product = req.body;
@@ -273,6 +275,51 @@ async function run() {
                 res.status(500).send({ message: "Failed to add advertisement" });
             }
         });
+
+        // Seller get add-advertisements
+        app.get('/advertisements', async (req, res) => {
+            try {
+                const result = await adsCollection.find().toArray();
+                res.send(result);
+            } catch (error) {
+                console.error("Failed to fetch advertisements:", error);
+                res.status(500).send({ message: "Failed to fetch advertisements" });
+            }
+        });
+
+        // Seller get one advertisements
+        app.get('/advertisements/:id', async (req, res) => {
+            const id = req.params.id;
+            try {
+                const query = { _id: new ObjectId(id) };
+                const ads = await adsCollection.findOne(query);
+
+                if (ads) {
+                    res.send(ads);
+                } else {
+                    res.status(404).send({ message: 'Product not found' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Invalid ID or Server Error' });
+            }
+        });
+
+        // Seller Update advertisements
+        app.patch('/advertisements/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateData = req.body;
+            try {
+                const result = await adsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updateData }
+                );
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ message: "Failed to update" });
+            }
+        });
+
+
 
         // seller product delete
         app.delete('/products/:id', async (req, res) => {
