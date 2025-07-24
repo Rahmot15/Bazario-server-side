@@ -83,6 +83,54 @@ async function run() {
             }
         });
 
+        // Approve or change status route
+        app.patch('/products/status/:id', verifyFirebaseToken, async (req, res) => {
+            const productId = req.params.id;
+            const { status } = req.body;
+
+            if (!['approved', 'rejected', 'pending'].includes(status)) {
+                return res.status(400).send({ message: 'Invalid status' });
+            }
+
+            const filter = { _id: new ObjectId(productId) };
+            const updateDoc = { $set: { status } };
+
+            const productUpdateResult = await productsCollections.updateOne(filter, updateDoc);
+
+            if (status === "approved") {
+                const product = await productsCollections.findOne(filter);
+                if (product?.vendorEmail) {
+                    await usersCollection.updateOne(
+                        { email: product.vendorEmail },
+                        { $set: { sellerStatus: "approved" } }
+                    );
+                }
+            }
+
+            res.send(productUpdateResult);
+        });
+
+        // Reject route with feedback
+        app.patch("/products/reject/:id", async (req, res) => {
+            const { id } = req.params;
+            const { feedback, status } = req.body;
+
+            const result = await productsCollections.updateOne(
+                { _id: new ObjectId(id) },
+                {
+                    $set: {
+                        status: status || "rejected",
+                        rejectionFeedback: feedback,
+                    },
+                }
+            );
+
+            res.send(result);
+        });
+
+
+
+
         // seller email dia product dakha
         app.get('/VendorsProducts', verifyFirebaseToken, async (req, res) => {
 
