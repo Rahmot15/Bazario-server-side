@@ -306,19 +306,27 @@ async function run() {
         });
 
         // Seller Update advertisements
-        app.patch('/advertisements/:id', async (req, res) => {
-            const id = req.params.id;
-            const updateData = req.body;
+        app.patch("/advertisements/:id", async (req, res) => {
+            const { id } = req.params;
+            const { status } = req.body;
+
             try {
                 const result = await adsCollection.updateOne(
                     { _id: new ObjectId(id) },
-                    { $set: updateData }
+                    { $set: { status } }
                 );
-                res.send(result);
-            } catch (err) {
-                res.status(500).send({ message: "Failed to update" });
+
+                if (result.modifiedCount > 0) {
+                    res.send({ success: true, message: "Status updated successfully" });
+                } else {
+                    res.status(404).send({ success: false, message: "Ad not found or already has the same status" });
+                }
+            } catch (error) {
+                console.error("Error updating status:", error);
+                res.status(500).send({ success: false, message: "Internal Server Error" });
             }
         });
+
 
         // Seller delete advertisements
         app.delete('/advertisements/:id', async (req, res) => {
@@ -353,6 +361,9 @@ async function run() {
                 res.status(404).send({ error: 'Product not found' });
             }
         });
+
+
+
 
 
 
