@@ -66,6 +66,19 @@ async function run() {
             const result = await productsCollections.find().toArray()
             res.send(result)
         })
+        // limit operator and approved Product
+        app.get('/products/approved', async (req, res) => {
+            const limit = parseInt(req.query.limit) || 6;
+
+            const result = await productsCollections
+                .find({ status: "approved" })
+                .sort({ "historicalPrices.date": -1 })
+                .limit(limit)
+                .toArray();
+
+            res.send(result);
+        });
+
 
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
