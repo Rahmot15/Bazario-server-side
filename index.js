@@ -400,7 +400,7 @@ async function run() {
         // Get payment history by user email (descending)
         app.get("/payments", verifyFirebaseToken, async (req, res) => {
             try {
-                const email = 'habib23445676896789@gmail.com';
+                const email = req.decoded?.email;
 
                 console.log("decoded", req.decoded);
                 if (req.decoded.email !== email) {
@@ -476,17 +476,34 @@ async function run() {
 
         // Product watchList add
         app.post("/watchlist", async (req, res) => {
-            const { productName, marketName, date, userEmail } = req.body;
+            const { productId, userEmail, marketName, productName } = req.body;
+
             const result = await watchlistCollection.insertOne({
-                productName,
-                marketName,
-                date,
+                productId,
                 userEmail,
                 addedAt: new Date(),
+                marketName,
+                productName
             });
+
             res.send(result);
         });
 
+        // get All watchList product
+        app.get("/watchlist", async (req, res) => {
+            const userEmail = req.query.email;
+
+            if (!userEmail) {
+                return res.status(400).send({ message: "Email is required" });
+            }
+
+            const result = await watchlistCollection
+                .find({ userEmail })
+                .sort({ addedAt: -1 })
+                .toArray();
+
+            res.send(result);
+        });
 
 
 
