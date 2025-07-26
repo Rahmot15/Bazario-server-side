@@ -151,7 +151,6 @@ async function run() {
 
         // seller email dia product dakha
         app.get('/VendorsProducts', verifyFirebaseToken, async (req, res) => {
-
             const email = req.query.email;
             const query = email ? { vendorEmail: email } : {};
             const result = await productsCollections.find(query).toArray();
@@ -393,6 +392,31 @@ async function run() {
                 res.json({ clientSecret: paymentIntent.client_secret });
             } catch (error) {
                 res.status(500).json({ error: error.message });
+            }
+        });
+
+
+        // Get payment history by user email (descending)
+        app.get("/payments", verifyFirebaseToken, async (req, res) => {
+            try {
+                const email = 'habib23445676896789@gmail.com';
+
+                console.log("decoded", req.decoded);
+                if (req.decoded.email !== email) {
+                    return res.status(403).send({ message: 'forbidden access' })
+                }
+
+                const query = email ? { paidBy: email } : {};
+
+                const payments = await paymentsCollection
+                    .find(query)
+                    .sort({ date: -1 }) // latest first
+                    .toArray();
+
+                res.send(payments);
+            } catch (error) {
+                console.error("Error fetching payment history:", error);
+                res.status(500).send({ message: "Failed to fetch payments", error: error.message });
             }
         });
 
