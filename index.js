@@ -324,12 +324,12 @@ async function run() {
         // Seller Update advertisements
         app.patch("/advertisements/:id", async (req, res) => {
             const { id } = req.params;
-            const updatedData  = req.body;
+            const updatedData = req.body;
 
             try {
                 const result = await adsCollection.updateOne(
                     { _id: new ObjectId(id) },
-                    { $set:  updatedData  }
+                    { $set: updatedData }
                 );
 
                 if (result.modifiedCount > 0) {
@@ -419,6 +419,23 @@ async function run() {
                 res.status(500).send({ message: "Failed to fetch payments", error: error.message });
             }
         });
+
+
+        // Get all payment history
+        app.get("/allPayments", async (req, res) => {
+            try {
+                const result = await paymentsCollection
+                    .find()
+                    .sort({ date: -1 }) // latest payments first
+                    .toArray();
+
+                res.send(result);
+            } catch (error) {
+                console.error("Error fetching payments:", error);
+                res.status(500).send({ message: "Failed to fetch payments", error: error.message });
+            }
+        });
+
 
 
         //  Mark a parcel as paid + Save payment history
