@@ -66,6 +66,7 @@ async function run() {
             const result = await productsCollections.find().toArray()
             res.send(result)
         })
+
         // limit operator and approved Product
         app.get('/products/approved', async (req, res) => {
             const limit = parseInt(req.query.limit) || 6;
@@ -321,12 +322,12 @@ async function run() {
         // Seller Update advertisements
         app.patch("/advertisements/:id", async (req, res) => {
             const { id } = req.params;
-            const { status } = req.body;
+            const updatedData  = req.body;
 
             try {
                 const result = await adsCollection.updateOne(
                     { _id: new ObjectId(id) },
-                    { $set: { status } }
+                    { $set:  updatedData  }
                 );
 
                 if (result.modifiedCount > 0) {
