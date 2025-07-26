@@ -16,9 +16,6 @@ app.use(cors())
 app.use(express.json())
 
 
-
-
-
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
@@ -283,9 +280,11 @@ async function run() {
 
 
         // Seller add-advertisements
-        app.post('/add-advertisements', async (req, res) => {
-            const product = req.body;
+        app.post('/add-advertisements', verifyFirebaseToken, async (req, res) => {
             try {
+                const product = req.body;
+                product.userEmail = req.decoded.email; // auto from token
+
                 const result = await adsCollection.insertOne(product);
                 res.send(result);
             } catch (error) {
@@ -293,6 +292,7 @@ async function run() {
                 res.status(500).send({ message: "Failed to add advertisement" });
             }
         });
+
 
         // Seller get add-advertisements
         app.get('/advertisements', async (req, res) => {
@@ -304,6 +304,24 @@ async function run() {
                 res.status(500).send({ message: "Failed to fetch advertisements" });
             }
         });
+
+        // Seller get their own advertisements
+        app.get('/myAdvertisements', verifyFirebaseToken, async (req, res) => {
+            try {
+                const email = req.query.email;
+
+                if (!email || req.decoded.email !== email) {
+                    return res.status(403).send({ message: "Forbidden access" });
+                }
+
+                const result = await adsCollection.find({ userEmail: email }).toArray();
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to fetch advertisements" });
+            }
+        });
+
+
 
         // Seller get one advertisements
         app.get('/advertisements/:id', async (req, res) => {
