@@ -64,6 +64,7 @@ async function run() {
         const usersCollection = db.collection('users')
         const adsCollection = db.collection('ads')
         const paymentsCollection = db.collection('payments')
+        const watchlistCollection = db.collection('watchList')
 
         app.get('/products', async (req, res) => {
             const result = await productsCollections.find().toArray()
@@ -437,7 +438,6 @@ async function run() {
         });
 
 
-
         //  Mark a parcel as paid + Save payment history
         app.post("/payments", async (req, res) => {
             try {
@@ -472,6 +472,21 @@ async function run() {
                 res.status(500).send({ message: "Failed to record payment", error: error.message });
             }
         });
+
+
+        // Product watchList add
+        app.post("/watchlist", async (req, res) => {
+            const { productName, marketName, date, userEmail } = req.body;
+            const result = await watchlistCollection.insertOne({
+                productName,
+                marketName,
+                date,
+                userEmail,
+                addedAt: new Date(),
+            });
+            res.send(result);
+        });
+
 
 
 
