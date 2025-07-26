@@ -10,6 +10,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000
 
+const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_KEY);
+
 app.use(cors())
 app.use(express.json())
 
@@ -61,6 +63,7 @@ async function run() {
         const reviewsCollection = db.collection("reviews")
         const usersCollection = db.collection('users')
         const adsCollection = db.collection('ads')
+        const paymentsCollection = db.collection('payments')
 
         app.get('/products', async (req, res) => {
             const result = await productsCollections.find().toArray()
@@ -378,6 +381,56 @@ async function run() {
 
 
 
+        // Stripe payment intent
+        app.post('/create-payment-intent', async (req, res) => {
+            const amountInCents = req.body.amountInCents
+            try {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount: amountInCents, // Amount in cents
+                    currency: 'usd',
+                    payment_method_types: ['card'],
+                });
+                res.json({ clientSecret: paymentIntent.client_secret });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+
+        //  Mark a parcel as paid + Save payment history
+        app.post("/payments", async (req, res) => {
+            try {
+                const { parcelId, transactionId, todayPrice, paidBy, marketName, productName } = req.body;
+
+                // Update parcel payment_status
+                const updateResult = await productsCollections.updateOne(
+                    { _id: new ObjectId(parcelId) },
+                    { $set: { payment_status: "paid" } }
+                );
+
+                // Insert payment history
+                const paymentEntry = {
+                    parcelId: new ObjectId(parcelId),
+                    transactionId,
+                    todayPrice,
+                    productName,
+                    marketName,
+                    paidBy,
+                    date: new Date().toISOString(),
+                };
+
+                const insertResult = await paymentsCollection.insertOne(paymentEntry);
+
+                res.send({
+                    message: "Payment recorded successfully",
+                    parcelUpdate: updateResult,
+                    insertedId: insertResult.insertedId,
+                });
+            } catch (error) {
+                console.error("Error saving payment:", error);
+                res.status(500).send({ message: "Failed to record payment", error: error.message });
+            }
+        });
 
 
 
