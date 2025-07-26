@@ -507,6 +507,23 @@ async function run() {
 
 
 
+        // DELETE a watchlist item
+        app.delete("/watchlist/:id", async (req, res) => {
+            const id = req.params.id;
+
+            try {
+                const result = await watchlistCollection.deleteOne({ _id: new ObjectId(id) });
+                if (result.deletedCount === 1) {
+                    res.send({ success: true, message: "Deleted successfully" });
+                } else {
+                    res.status(404).send({ success: false, message: "Item not found" });
+                }
+            } catch (error) {
+                res.status(500).send({ success: false, message: "Internal server error" });
+            }
+        });
+
+
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
