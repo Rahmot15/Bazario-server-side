@@ -176,17 +176,13 @@ async function run() {
                 email: userData?.email,
             }
             const alreadyExists = await usersCollection.findOne(query)
-            console.log('User already exists: ', !!alreadyExists)
             if (!!alreadyExists) {
-                console.log('Updating user data......')
                 const result = await usersCollection.updateOne(query, {
                     $set: { last_loggedIn: new Date().toISOString() },
                 })
                 return res.send(result)
             }
 
-            console.log('Creating user data......')
-            // return console.log(userData)
             const result = await usersCollection.insertOne(userData)
             res.send(result)
         })
@@ -214,7 +210,6 @@ async function run() {
         app.patch('/user/role/update/:email', verifyFirebaseToken, async (req, res) => {
             const email = req.params.email
             const { role } = req.body
-            console.log(role)
             const filter = { email: email }
             const updateDoc = {
                 $set: {
@@ -223,7 +218,6 @@ async function run() {
                 },
             }
             const result = await usersCollection.updateOne(filter, updateDoc)
-            console.log(result)
             res.send(result)
         })
 
@@ -420,7 +414,6 @@ async function run() {
             try {
                 const email = req.decoded?.email;
 
-                console.log("decoded", req.decoded);
                 if (req.decoded.email !== email) {
                     return res.status(403).send({ message: 'forbidden access' })
                 }
