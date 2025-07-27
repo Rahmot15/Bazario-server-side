@@ -63,32 +63,61 @@ async function run() {
     try {
 
         const verifyAdmin = async (req, res, next) => {
-            const email = req?.user?.email
-            const user = await usersCollection.findOne({
-                email,
-            })
-            console.log(user?.role)
-            if (!user || user?.role !== 'admin')
-                return res
-                    .status(403)
-                    .send({ message: 'Admin only Actions!', role: user?.role })
-
-            next()
-        }
+            const email = req?.decoded?.email;
+            const user = await usersCollection.findOne({ email });
+            console.log(user?.role);
+            if (!user || user?.role !== 'admin') {
+                return res.status(403).send({
+                    message: 'Admin only Actions!',
+                    role: user?.role
+                });
+            }
+            next();
+        };
 
         const verifySeller = async (req, res, next) => {
-            const email = req?.user?.email
-            const user = await usersCollection.findOne({
-                email,
-            })
-            console.log(user?.role)
-            if (!user || user?.role !== 'seller')
-                return res
-                    .status(403)
-                    .send({ message: 'Admin only Actions!', role: user?.role })
+            const email = req?.decoded?.email;
+            const user = await usersCollection.findOne({ email });
+            console.log(user?.role);
+            if (!user || user?.role !== 'seller') {
+                return res.status(403).send({
+                    message: 'Seller only Actions!',
+                    role: user?.role
+                });
+            }
+            next();
+        };
 
-            next()
-        }
+
+        const allowAdminOrOwner = async (req, res, next) => {
+            try {
+                const email = req.decoded.email;
+                const user = await usersCollection.findOne({ email });
+
+                if (user.role === 'admin') {
+                    return next();
+                }
+
+                const resourceId = req.params.id;
+                const resource = await productsCollections.findOne({
+                    _id: new ObjectId(resourceId)
+                }) || await adsCollection.findOne({
+                    _id: new ObjectId(resourceId)
+                });
+
+                if (!resource) {
+                    return res.status(404).send({ message: 'Resource not found' });
+                }
+
+                if (resource.vendorEmail !== email && resource.userEmail !== email) {
+                    return res.status(403).send({ message: 'Forbidden: Not your resource' });
+                }
+
+                next();
+            } catch (error) {
+                res.status(500).send({ message: 'Internal error', error: error.message });
+            }
+        };
 
 
 
@@ -331,8 +360,80 @@ async function run() {
 
 
 
+
+        // Seller and Admin UPDATE product by ID
+        app.put("/products/:id", verifyFirebaseToken, allowAdminOrOwner, async (req, res) => {
+            const id = req.params.id;
+            const updatedData = req.body;
+
+            const result = await productsCollections.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
+            );
+
+            res.send(result);
+        });
+
+        // Seller and Admin product delete
+        app.delete('/products/:id', verifyFirebaseToken, allowAdminOrOwner, async (req, res) => {
+            const id = req.params.id;
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send({ error: 'Invalid product ID' });
+            }
+
+            const result = await productsCollections.deleteOne({ _id: new ObjectId(id) });
+
+            if (result.deletedCount === 1) {
+                res.send({ message: 'Product deleted successfully' });
+            } else {
+                res.status(404).send({ error: 'Product not found' });
+            }
+        });
+
+        // Seller and Admin Update advertisements
+        app.patch("/advertisements/:id", verifyFirebaseToken, allowAdminOrOwner, async (req, res) => {
+            const { id } = req.params;
+            const updatedData = req.body;
+
+            try {
+                const result = await adsCollection.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: updatedData }
+                );
+
+                if (result.modifiedCount > 0) {
+                    res.send({ success: true, message: "Status updated successfully" });
+                } else {
+                    res.status(404).send({ success: false, message: "Ad not found or already has the same status" });
+                }
+            } catch (error) {
+                console.error("Error updating status:", error);
+                res.status(500).send({ success: false, message: "Internal Server Error" });
+            }
+        });
+
+        // Seller and Admin delete advertisements
+        app.delete('/advertisements/:id', verifyFirebaseToken, allowAdminOrOwner, async (req, res) => {
+            const id = req.params.id;
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send({ error: 'Invalid product ID' });
+            }
+
+            const result = await adsCollection.deleteOne({ _id: new ObjectId(id) });
+
+            if (result.deletedCount === 1) {
+                res.send({ message: 'Product deleted successfully' });
+            } else {
+                res.status(404).send({ error: 'Product not found' });
+            }
+        });
+
+
+
+
+
         // Seller get one advertisements
-        app.get('/advertisements/:id',verifyFirebaseToken, async (req, res) => {
+        app.get('/advertisements/:id', verifyFirebaseToken, async (req, res) => {
             const id = req.params.id;
             try {
                 const query = { _id: new ObjectId(id) };
@@ -345,22 +446,6 @@ async function run() {
                 }
             } catch (error) {
                 res.status(500).send({ message: 'Invalid ID or Server Error' });
-            }
-        });
-
-        // Seller delete advertisements
-        app.delete('/advertisements/:id', verifyFirebaseToken, async (req, res) => {
-            const id = req.params.id;
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).send({ error: 'Invalid product ID' });
-            }
-
-            const result = await adsCollection.deleteOne({ _id: new ObjectId(id) });
-
-            if (result.deletedCount === 1) {
-                res.send({ message: 'Product deleted successfully' });
-            } else {
-                res.status(404).send({ error: 'Product not found' });
             }
         });
 
@@ -391,57 +476,6 @@ async function run() {
             if (!result) return res.status(404).send({ message: 'User Not Found.' })
             res.send({ role: result?.role })
         })
-
-        // UPDATE product by ID
-        app.put("/products/:id", verifyFirebaseToken, async (req, res) => {
-            const id = req.params.id;
-            const updatedData = req.body;
-
-            const result = await productsCollections.updateOne(
-                { _id: new ObjectId(id) },
-                { $set: updatedData }
-            );
-
-            res.send(result);
-        });
-
-        // Seller Update advertisements
-        app.patch("/advertisements/:id", verifyFirebaseToken, async (req, res) => {
-            const { id } = req.params;
-            const updatedData = req.body;
-
-            try {
-                const result = await adsCollection.updateOne(
-                    { _id: new ObjectId(id) },
-                    { $set: updatedData }
-                );
-
-                if (result.modifiedCount > 0) {
-                    res.send({ success: true, message: "Status updated successfully" });
-                } else {
-                    res.status(404).send({ success: false, message: "Ad not found or already has the same status" });
-                }
-            } catch (error) {
-                console.error("Error updating status:", error);
-                res.status(500).send({ success: false, message: "Internal Server Error" });
-            }
-        });
-
-        // seller product delete
-        app.delete('/products/:id', verifyFirebaseToken, async (req, res) => {
-            const id = req.params.id;
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).send({ error: 'Invalid product ID' });
-            }
-
-            const result = await productsCollections.deleteOne({ _id: new ObjectId(id) });
-
-            if (result.deletedCount === 1) {
-                res.send({ message: 'Product deleted successfully' });
-            } else {
-                res.status(404).send({ error: 'Product not found' });
-            }
-        });
 
         // Stripe payment intent
         app.post('/create-payment-intent', verifyFirebaseToken, async (req, res) => {
