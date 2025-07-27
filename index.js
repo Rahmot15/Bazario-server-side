@@ -270,14 +270,21 @@ async function run() {
 
         // get all users for admin
         app.get('/all-users', verifyFirebaseToken, verifyAdmin, async (req, res) => {
+            const search = req.query.search || "";
+
             const filter = {
                 email: {
                     $ne: req?.decoded?.email,
                 },
-            }
-            const result = await usersCollection.find(filter).toArray()
-            res.send(result)
-        })
+                $or: [
+                    { name: { $regex: search, $options: "i" } },
+                    { email: { $regex: search, $options: "i" } },
+                ],
+            };
+
+            const result = await usersCollection.find(filter).toArray();
+            res.send(result);
+        });
 
         // update a user's role
         app.patch('/user/role/update/:email', verifyFirebaseToken, verifyAdmin, async (req, res) => {
