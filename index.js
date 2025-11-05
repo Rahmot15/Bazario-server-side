@@ -3,8 +3,7 @@ const express = require('express')
 const cors = require('cors');
 
 const admin = require("firebase-admin");
-const serviceAccount = require("./bazario-auth-firebase-adminsdk.json");
-
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
