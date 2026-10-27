@@ -3,3 +3,12 @@ node_modules
 bazario-auth-firebase-adminsdk.json
 vercel.json
 .vercel
+
+# Environment variables & secrets (added by GitHub Guardian)
+.env.*
+*.env
+!.env.example
+!.env.sample
+.envrc
+.venv/
+venv/
